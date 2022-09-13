@@ -154,7 +154,7 @@ void CExamRectMouseMoveDlg::OnMouseMove(UINT nFlags, CPoint point)
 
 		if (m_is_clicked == 2)
 		{
-			m_rect1 += move_pos; // 클래스 내 연산자 오버로딩되어있음
+			m_rect2 += move_pos; // 클래스 내 연산자 오버로딩되어있음
 								// 마우스 이동거리만큼 사각형을 이동한다.
 
 			CRect r;
@@ -167,7 +167,7 @@ void CExamRectMouseMoveDlg::OnMouseMove(UINT nFlags, CPoint point)
 
 		if (m_is_clicked == 3)
 		{
-			m_rect1 += move_pos; // 클래스 내 연산자 오버로딩되어있음
+			m_rect3 += move_pos; // 클래스 내 연산자 오버로딩되어있음
 								// 마우스 이동거리만큼 사각형을 이동한다.
 			CRect r;
 
