@@ -13,6 +13,10 @@ private:
 	char m_is_clicked = 0;
 	CPoint m_prev_pos;
 
+	CRgn m_star_region, m_ellipse_region;
+	CBrush m_fill_brush;
+	CRgn m_temp_region; // 영역 비교용 region
+
 // 생성입니다.
 public:
 	CExamRectMouseMoveDlg(CWnd* pParent = nullptr);	// 표준 생성자입니다.

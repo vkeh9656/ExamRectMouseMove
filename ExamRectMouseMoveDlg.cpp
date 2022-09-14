@@ -21,9 +21,24 @@ CExamRectMouseMoveDlg::CExamRectMouseMoveDlg(CWnd* pParent /*=nullptr*/)
 	: CDialogEx(IDD_EXAMRECTMOUSEMOVE_DIALOG, pParent)
 {
 	m_hIcon = AfxGetApp()->LoadIcon(IDR_MAINFRAME);
-	m_rect1.SetRect(10, 10, 100, 100);
-	m_rect2.SetRect(110, 110, 200, 200);
-	m_rect3.SetRect(210, 210, 300, 300);
+	m_rect1.SetRect(210, 210, 300, 300);
+	m_rect2.SetRect(310, 220, 400, 310);
+	m_rect3.SetRect(410, 230, 500, 320);
+
+	POINT star_pos[11] = {
+	{101, 0}, {77, 77}, {0, 77}, {62,125},
+	{39, 201}, {101,153}, {163,201}, {138, 125},
+	{201, 77}, {124, 77}, {101, 0}
+	};
+
+	m_star_region.CreatePolygonRgn(star_pos, 11, ALTERNATE);	// alternate = 도형의 안쪽 사용
+
+	
+	m_temp_region.CreateRectRgn(10, 10, 100, 200); // 영역 비교용 임시 영역 생성
+	m_ellipse_region.CreateEllipticRgn(310, 10, 400, 100);
+
+	m_fill_brush.CreateSolidBrush(RGB(0, 0, 0));
+	
 }
 
 void CExamRectMouseMoveDlg::DoDataExchange(CDataExchange* pDX)
@@ -81,9 +96,16 @@ void CExamRectMouseMoveDlg::OnPaint()
 	}
 	else
 	{
+		dc.PaintRgn(&m_ellipse_region);
+		dc.FrameRgn(&m_ellipse_region, &m_fill_brush, 1, 1);
+
+		dc.PaintRgn(&m_star_region);
+		dc.FrameRgn(&m_star_region, &m_fill_brush, 1, 1);
+
 		dc.Rectangle(m_rect1);
 		dc.Rectangle(m_rect2);
 		dc.Rectangle(m_rect3);
+
 		/*CDialogEx::OnPaint();*/
 	}
 }
@@ -104,10 +126,11 @@ void CExamRectMouseMoveDlg::OnLButtonDown(UINT nFlags, CPoint point)
 	if (m_rect1.PtInRect(point)) m_is_clicked = 1;// 사각형 안에 점이 있느냐 체크해주는 함수
 	else if (m_rect2.PtInRect(point)) m_is_clicked = 2;
 	else if (m_rect3.PtInRect(point)) m_is_clicked = 3;
-	
+	else if (m_star_region.PtInRegion(point)) m_is_clicked = 4;
+	else if (m_ellipse_region.PtInRegion(point)) m_is_clicked = 5;
 
 	if(m_is_clicked){
-		 // 사각형이 클릭되었다고 알리는 flag
+		 // 도형이 클릭되었다고 알리는 flag
 		m_prev_pos = point;
 		SetCapture(); // 마우스 커서가 내 client 영역을 넘어가도 계속 마우스 메시지를 나한테 달라.
 						// 이 함수 쓰면 반드시 빠지는 부분에서 ReleaseCapture 할것.
@@ -122,7 +145,7 @@ void CExamRectMouseMoveDlg::OnLButtonUp(UINT nFlags, CPoint point)
 	if (m_is_clicked)
 	{
 		m_is_clicked = 0;
-		ReleaseCapture();
+		ReleaseCapture();	// SetCapture의 짝꿍
 	}
 	CDialogEx::OnLButtonUp(nFlags, point);
 }
@@ -143,10 +166,10 @@ void CExamRectMouseMoveDlg::OnMouseMove(UINT nFlags, CPoint point)
 		{
 			m_rect1 += move_pos; // 클래스 내 연산자 오버로딩되어있음
 								// 마우스 이동거리만큼 사각형을 이동한다.
-
 			CRect r;
 
-			if (r.IntersectRect(m_rect1, m_rect2) || r.IntersectRect(m_rect1, m_rect3))
+			if (r.IntersectRect(m_rect1, m_rect2) || r.IntersectRect(m_rect1, m_rect3) || 
+				m_star_region.RectInRegion(m_rect1) || m_ellipse_region.RectInRegion(m_rect1)) // region의 멤버함수 이용해서 위치 체크
 			{
 				m_rect1 = m_rect1 - move_pos;
 			}
@@ -159,7 +182,8 @@ void CExamRectMouseMoveDlg::OnMouseMove(UINT nFlags, CPoint point)
 
 			CRect r;
 
-			if (r.IntersectRect(m_rect2, m_rect1) || r.IntersectRect(m_rect2, m_rect3))
+			if (r.IntersectRect(m_rect2, m_rect1) || r.IntersectRect(m_rect2, m_rect3) ||
+				m_star_region.RectInRegion(m_rect2) || m_ellipse_region.RectInRegion(m_rect2)) // region의 멤버함수 이용해서 위치 체크)
 			{
 				m_rect2 = m_rect2 - move_pos;
 			}
@@ -171,9 +195,33 @@ void CExamRectMouseMoveDlg::OnMouseMove(UINT nFlags, CPoint point)
 								// 마우스 이동거리만큼 사각형을 이동한다.
 			CRect r;
 
-			if (r.IntersectRect(m_rect3, m_rect1) || r.IntersectRect(m_rect3, m_rect2))
+			if (r.IntersectRect(m_rect3, m_rect1) || r.IntersectRect(m_rect3, m_rect2) ||
+				m_star_region.RectInRegion(m_rect3) || m_ellipse_region.RectInRegion(m_rect3)) // region의 멤버함수 이용해서 위치 체크)
 			{
 				m_rect3 = m_rect3 - move_pos;
+			}
+		}
+
+		if (m_is_clicked == 4)
+		{
+			m_star_region.OffsetRgn(move_pos);	// region은 point와 개념이 다르니 따로 이동할때 쓰는 함수를 제공함
+
+			if (NULLREGION != m_temp_region.CombineRgn(&m_star_region, &m_ellipse_region, RGN_AND) ||
+				m_star_region.RectInRegion(m_rect1) || m_star_region.RectInRegion(m_rect2) || m_star_region.RectInRegion(m_rect3))
+			{
+				m_star_region.OffsetRgn(-move_pos.x, -move_pos.y);
+			}
+			
+		}
+
+		if (m_is_clicked == 5)
+		{
+			m_ellipse_region.OffsetRgn(move_pos);
+
+			if(NULLREGION != m_temp_region.CombineRgn(&m_star_region, &m_ellipse_region, RGN_AND) || 
+				m_ellipse_region.RectInRegion(m_rect1) || m_ellipse_region.RectInRegion(m_rect2) || m_ellipse_region.RectInRegion(m_rect3))
+			{
+				m_ellipse_region.OffsetRgn(-move_pos.x, -move_pos.y);
 			}
 		}
 		
